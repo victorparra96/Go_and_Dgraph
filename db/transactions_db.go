@@ -57,14 +57,15 @@ func DbNewTransaction(transaction *models.Transaction) {
 		query {
 			v as var(func: eq(id, %q))
 			p as var(func: eq(id_product, %s))
-	  	}`, pb[7:15], products)
+			t as var(func: eq(id_transaction, %q))
+	  	}`, pb[7:15], products, transaction.Id_transaction)
 
 	mutation := fmt.Sprintf(`
-	_:Transaction <id_buyer>  uid(v) .
-	_:Transaction <product>  uid(p) .
-	_:Transaction <id_transaction>  %q .
-	_:Transaction <device> %q .
-	_:Transaction <ip> %q .
+	uid(t) <id_buyer>  uid(v) .
+	uid(t) <product>  uid(p) .
+	uid(t) <id_transaction>  %q .
+	uid(t) <device> %q .
+	uid(t) <ip> %q .
 	`, transaction.Id_transaction, transaction.Device, transaction.Ip)
 
 	mu := &api.Mutation{

@@ -2,7 +2,7 @@ package db
 
 import (
 	"context"
-	"encoding/json"
+	"fmt"
 	"log"
 
 	"chi_api_rest_products/dgraph_client"
@@ -34,18 +34,28 @@ func DbNewBuyer(buyer *models.Buyer) {
 		log.Fatal(err)
 	}
 
+	q := fmt.Sprintf(`
+		query {
+			buyer_id as var(func: eq(id, %q))
+	  	}`, buyer.Id)
+
+	mutation := fmt.Sprintf(`
+	uid(buyer_id) <id> %q .
+    uid(buyer_id) <name> %q .
+	uid(buyer_id) <age> "%d" .
+	`, buyer.Id, buyer.Name, buyer.Age)
+
 	mu := &api.Mutation{
+		SetNquads: []byte(mutation),
+	}
+
+	req := &api.Request{
+		Query:     q,
+		Mutations: []*api.Mutation{mu},
 		CommitNow: true,
 	}
 
-	pb, err := json.Marshal(buyer)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	mu.SetJson = pb
-	_, err = dg.NewTxn().Mutate(ctx, mu)
-	if err != nil {
+	if _, err := dg.NewTxn().Do(ctx, req); err != nil {
 		log.Fatal(err)
 	}
 

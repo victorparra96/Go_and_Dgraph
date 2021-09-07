@@ -2,7 +2,7 @@ package db
 
 import (
 	"context"
-	"encoding/json"
+	"fmt"
 	"log"
 
 	"chi_api_rest_products/dgraph_client"
@@ -34,18 +34,28 @@ func DbNewProduct(product *models.Product) {
 		log.Fatal(err)
 	}
 
+	q := fmt.Sprintf(`
+		query {
+			product_id as var(func: eq(id_product, %q))
+	  	}`, product.Id_product)
+
+	mutation := fmt.Sprintf(`
+	uid(product_id) <id_product> %q .
+    uid(product_id) <name_product> %q .
+	uid(product_id) <price> "%d" .
+	`, product.Id_product, product.Name_product, product.Price)
+
 	mu := &api.Mutation{
+		SetNquads: []byte(mutation),
+	}
+
+	req := &api.Request{
+		Query:     q,
+		Mutations: []*api.Mutation{mu},
 		CommitNow: true,
 	}
 
-	pb, err := json.Marshal(product)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	mu.SetJson = pb
-	_, err = dg.NewTxn().Mutate(ctx, mu)
-	if err != nil {
+	if _, err := dg.NewTxn().Do(ctx, req); err != nil {
 		log.Fatal(err)
 	}
 
